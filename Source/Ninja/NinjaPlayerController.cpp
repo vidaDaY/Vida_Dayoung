@@ -2,11 +2,12 @@
 
 
 #include "NinjaPlayerController.h"
-//#include "MainWidget.h"
+#include "Kismet/GameplayStatics.h"
+
 
 ANinjaPlayerController::ANinjaPlayerController()
 {
-	
+
 }
 
 void ANinjaPlayerController::OnPossess(APawn* aPawn)
@@ -19,11 +20,11 @@ void ANinjaPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//if (!MainUserWidget)
-	//{
-	//	MainUserWidget = CreateWidget<UMainWidget>(this, MainUserWidgetClass);
-	//	MainUserWidget->AddToViewport();
-	//}
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 
+	if (PlayerController)
+	{
+		PlayerController->SetInputMode(FInputModeGameOnly());
+	}
 }
 
