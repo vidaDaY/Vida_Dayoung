@@ -19,6 +19,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -27,7 +29,18 @@ public:
 		class UStaticMeshComponent* WeaponMesh;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-		class USceneComponent* RootMesh;
+		class USceneComponent* Root;
 
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+		class UCapsuleComponent* collision;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+		class UParticleSystemComponent* WeaponTrail;
+
+	UFUNCTION(BlueprintCallable, Category = "Attack")
+		void AttackOn(FName FirstSocketName, FName SecondSocketName);
+
+	UFUNCTION(BlueprintCallable, Category = "Attack")
+		void AttackOff();
 
 };
