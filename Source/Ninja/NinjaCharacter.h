@@ -4,7 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Components/SceneComponent.h"
+#include "BaseWeapon.h"
+#include "S_PlayerData.h"
 #include "NinjaCharacter.generated.h"
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadCall);
 
 UENUM(BlueprintType)
 enum class E_PlayerMode : uint8
@@ -36,16 +41,16 @@ class ANinjaCharacter : public ACharacter
 
 
 
+
 public:
 
 
 	ANinjaCharacter();
 
-	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		float BaseTurnRate;
 
-	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		float BaseLookUpRate;
 
@@ -55,42 +60,48 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enum")
 		void SetPlayerMode(E_PlayerMode eMode);
 
+	UFUNCTION(BlueprintCallable, Category = "Hit")
+		void HitByEnemy();
+
+	UFUNCTION(BlueprintCallable, Category = "Hit")
+		void HitByBoss();
+
 	UPROPERTY(BlueprintReadwrite)
 		E_PlayerMode ePlayerMode;
 
+	UPROPERTY(BlueprintReadwrite)
+		FPLAYERDATA PlayerData;
 
+	UPROPERTY(BlueprintReadwrite)
+		AActor* DamageEffect;
+
+	UPROPERTY(BlueprintReadwrite)
+		TSubclassOf<AActor> DamageEffectClass;
 
 protected:
 
-	/** Resets HMD orientation in VR. */
 	void OnResetVR();
 
-	/** Called for forwards/backward input */
 	void MoveForward(float Value);
 
-	/** Called for side to side input */
 	void MoveRight(float Value);
 
-	/** Called for side to side input */
+	void TurnAtRate(float Rate);
+
+	void LookUpAtRate(float Rate);
+
+	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
+
+	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+
 	UFUNCTION(BlueprintCallable, Category = "Dash")
 		void DashStart();
 
 	UFUNCTION(BlueprintCallable, Category = "Dash")
 		void DashDone();
 
-	void TurnAtRate(float Rate);
-
-	/**
-	 * Called via input to turn look up/down at a given rate.
-	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
-	 */
-	void LookUpAtRate(float Rate);
-
-	/** Handler for when a touch input begins. */
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+	UFUNCTION(BlueprintCallable, Category = "Death")
+		void OnDead();
 
 protected:
 	// APawn interface
@@ -103,7 +114,6 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-
-
+	FOnDeadCall OnDeadCall;
 };
 
