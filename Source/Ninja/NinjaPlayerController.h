@@ -24,10 +24,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-//	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = UI)
-//       		TSubclassOf<class UMainWidget> MainUserWidgetClass;
-
-private:
 
 };
                         
