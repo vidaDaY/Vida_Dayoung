@@ -5,15 +5,15 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/SceneComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
+#include "BaseWeapon.h"
 #include "NinjaPlayerController.h"
 
-
-//////////////////////////////////////////////////////////////////////////
-// UE_LOG(LogTemp, Log, TEXT("Okay Bye"));
 
 ANinjaCharacter::ANinjaCharacter()
 {
@@ -53,14 +53,106 @@ ANinjaCharacter::ANinjaCharacter()
 	TPSBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("TPSBoom"));
 	TPSBoom->SetupAttachment(RootComponent);
 	TPSBoom->TargetArmLength = 300.0f;
-	TPSBoom->bUsePawnControlRotation = true; 
+	TPSBoom->bUsePawnControlRotation = true;
 	TPSBoom->bDoCollisionTest = true;
 
 	// Create a follow camera
 	TPSCamera = CreateDefaultSubobject<UChildActorComponent>(TEXT("TPSCamera"));
 	TPSCamera->SetupAttachment(TPSBoom, USpringArmComponent::SocketName);
 
+	PlayerData.fCurruentHP = 1.0f;
+	PlayerData.fMaxHP = 1.0f;
+	PlayerData.fCurruentMP = 1.0f;
+	PlayerData.fMaxHP = 1.0f;
+	PlayerData.nCurruntArrow = 30;
+	PlayerData.nMaxArrow = 30;
+	PlayerData.nCoin = 0.0f;
 
+
+	OnDeadCall.AddDynamic(this, &ANinjaCharacter::OnDead);
+
+}
+
+
+
+void ANinjaCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
+{
+
+	check(PlayerInputComponent);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &ANinjaCharacter::DashStart);
+	PlayerInputComponent->BindAction("Dash", IE_Released, this, &ANinjaCharacter::DashDone);
+
+
+
+	PlayerInputComponent->BindAxis("MoveForward", this, &ANinjaCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ANinjaCharacter::MoveRight);
+
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("TurnRate", this, &ANinjaCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &ANinjaCharacter::LookUpAtRate);
+
+
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &ANinjaCharacter::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Released, this, &ANinjaCharacter::TouchStopped);
+
+
+	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ANinjaCharacter::OnResetVR);
+}
+
+
+void ANinjaCharacter::OnResetVR()
+{
+
+	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
+}
+
+void ANinjaCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	Jump();
+}
+
+void ANinjaCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	StopJumping();
+}
+
+
+void ANinjaCharacter::TurnAtRate(float Rate)
+{
+	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+}
+
+void ANinjaCharacter::LookUpAtRate(float Rate)
+{
+	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void ANinjaCharacter::MoveForward(float Value)
+{
+	if ((Controller != nullptr) && (Value != 0.0f))
+	{
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		AddMovementInput(Direction, Value);
+	}
+}
+
+void ANinjaCharacter::MoveRight(float Value)
+{
+	if ((Controller != nullptr) && (Value != 0.0f))
+	{
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		// add movement in that direction
+		AddMovementInput(Direction, Value);
+	}
 }
 
 void ANinjaCharacter::SetPlayerMode(E_PlayerMode eMode)
@@ -89,110 +181,31 @@ void ANinjaCharacter::SetPlayerMode(E_PlayerMode eMode)
 
 }
 
-
-//////////////////////////////////////////////////////////////////////////
-// Input
-
-void ANinjaCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
+void ANinjaCharacter::HitByEnemy()
 {
-	// Set up gameplay key bindings
-	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &ANinjaCharacter::DashStart);
-	PlayerInputComponent->BindAction("Dash", IE_Released, this, &ANinjaCharacter::DashDone);
-
-
-
-	PlayerInputComponent->BindAxis("MoveForward", this, &ANinjaCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ANinjaCharacter::MoveRight);
-
-	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
-	// "turn" handles devices that provide an absolute delta, such as a mouse.
-	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("TurnRate", this, &ANinjaCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &ANinjaCharacter::LookUpAtRate);
-
-
-	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &ANinjaCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &ANinjaCharacter::TouchStopped);
-
-
-	// VR headset functionality
-	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ANinjaCharacter::OnResetVR);
-}
-
-
-void ANinjaCharacter::OnResetVR()
-{
-	// If Ninja is added to a project via 'Add Feature' in the Unreal Editor the dependency on HeadMountedDisplay in Ninja.Build.cs is not automatically propagated
-	// and a linker error will result.
-	// You will need to either:
-	//		Add "HeadMountedDisplay" to [YourProject].Build.cs PublicDependencyModuleNames in order to build successfully (appropriate if supporting VR).
-	// or:
-	//		Comment or delete the call to ResetOrientationAndPosition below (appropriate if not supporting VR)
-	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
-}
-
-void ANinjaCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
-	Jump();
-}
-
-void ANinjaCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-	StopJumping();
-}
-
-void ANinjaCharacter::TurnAtRate(float Rate)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
-}
-
-void ANinjaCharacter::LookUpAtRate(float Rate)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
-}
-
-void ANinjaCharacter::MoveForward(float Value)
-{
-	if ((Controller != nullptr) && (Value != 0.0f))
+	if (PlayerData.fCurruentHP > 0)
 	{
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		PlayerData.fCurruentHP -= 0.04;
 
-		// get forward vector
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, Value);
+			if (PlayerData.fCurruentHP <= 0)
+			{
+				OnDeadCall.Broadcast();
+			}		
 	}
 }
 
-void ANinjaCharacter::MoveRight(float Value)
+void ANinjaCharacter::HitByBoss()
 {
-	if ((Controller != nullptr) && (Value != 0.0f))
+	if (PlayerData.fCurruentHP > 0)
 	{
-		// find out which way is right
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		PlayerData.fCurruentHP -= 0.06;
 
-		// get right vector 
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		// add movement in that direction
-		AddMovementInput(Direction, Value);
+			if (PlayerData.fCurruentHP <= 0)
+			{
+				OnDeadCall.Broadcast();
+			}
 	}
 }
-
-
-//void ANinjaCharacter::DashStart()
-//{
-//	
-//}
 
 void ANinjaCharacter::DashStart()
 {
@@ -205,13 +218,13 @@ void ANinjaCharacter::DashStart()
 		CameraBoom->CameraLagSpeed = 3.0;
 
 		FTimerHandle WaitHandle;
-		float WaitTime; 
+		float WaitTime;
 
 		WaitTime = 0.8f;
 
 		GetWorld()->GetTimerManager().SetTimer(WaitHandle, FTimerDelegate::CreateLambda([&]()
 			{
-				
+
 				GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 				CameraBoom->CameraLagSpeed = 15.0;
 				GetWorld()->GetTimerManager().ClearTimer(WaitHandle);
@@ -224,8 +237,20 @@ void ANinjaCharacter::DashDone()
 {
 
 	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-	//CameraBoom->bEnableCameraLag = false;
 	CameraBoom->CameraLagSpeed = 15.0;
 }
 
+void ANinjaCharacter::OnDead()
+{
+
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	GetCharacterMovement()->JumpZVelocity = 0.f;
+	GetCharacterMovement()->MaxWalkSpeed = 0.f;
+	GetCapsuleComponent()->SetGenerateOverlapEvents(false);
+
+	TPSBoom->bUsePawnControlRotation = false;
+	CameraBoom->bUsePawnControlRotation = false;
+
+}
 
