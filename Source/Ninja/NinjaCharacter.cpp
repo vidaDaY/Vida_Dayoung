@@ -11,7 +11,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
-#include "BaseWeapon.h"
+#include "Ninja_GameInstance.h"
+#include "MainUserWidget.h"
 #include "NinjaPlayerController.h"
 
 
@@ -60,13 +61,12 @@ ANinjaCharacter::ANinjaCharacter()
 	TPSCamera = CreateDefaultSubobject<UChildActorComponent>(TEXT("TPSCamera"));
 	TPSCamera->SetupAttachment(TPSBoom, USpringArmComponent::SocketName);
 
-	PlayerData.fCurruentHP = 1.0f;
-	PlayerData.fMaxHP = 1.0f;
-	PlayerData.fCurruentMP = 1.0f;
-	PlayerData.fMaxHP = 1.0f;
-	PlayerData.nCurruntArrow = 30;
-	PlayerData.nMaxArrow = 30;
-	PlayerData.nCoin = 0.0f;
+	static ConstructorHelpers::FClassFinder<UMainUserWidget> WidgetClass(TEXT("/Game/KachujinBP/Widget/bp-Main"));
+	if (WidgetClass.Succeeded())
+	{
+		MainUserWidgetClass = WidgetClass.Class;
+	}
+
 
 
 	OnDeadCall.AddDynamic(this, &ANinjaCharacter::OnDead);
@@ -100,6 +100,43 @@ void ANinjaCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 
 
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ANinjaCharacter::OnResetVR);
+}
+
+void ANinjaCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UNinja_GameInstance* pNinjaGameInstance;
+
+	pNinjaGameInstance = Cast<UNinja_GameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
+
+	playerdata = pNinjaGameInstance->savePlayerData;
+
+
+	if (MainUserWidgetClass)
+	{
+		MainWidget = CreateWidget<UMainUserWidget>(GetWorld(), MainUserWidgetClass);
+		if (MainWidget)
+		{
+			MainWidget->BindHpBar(playerdata.fCurrentHP);
+			MainWidget->AddToViewport();
+
+		}
+	}
+
+
+}
+
+
+void ANinjaCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	UNinja_GameInstance* pNinjaGameInstance;
+
+	pNinjaGameInstance = Cast<UNinja_GameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
+
+	pNinjaGameInstance->savePlayerData = playerdata;
 }
 
 
@@ -155,6 +192,7 @@ void ANinjaCharacter::MoveRight(float Value)
 	}
 }
 
+
 void ANinjaCharacter::SetPlayerMode(E_PlayerMode eMode)
 {
 	APlayerController* OurPlayer = UGameplayStatics::GetPlayerController(this, 0);
@@ -181,30 +219,41 @@ void ANinjaCharacter::SetPlayerMode(E_PlayerMode eMode)
 
 }
 
-void ANinjaCharacter::HitByEnemy()
+void ANinjaCharacter::HitByEnemy(float AmountOfDamage)
 {
-	if (PlayerData.fCurruentHP > 0)
+	if (playerdata.fCurrentHP > 0)
 	{
-		PlayerData.fCurruentHP -= 0.04;
+		playerdata.fCurrentHP -= AmountOfDamage;
+		
+		MainWidget->BindHpBar(playerdata.fCurrentHP);
 
-			if (PlayerData.fCurruentHP <= 0)
-			{
-				OnDeadCall.Broadcast();
-			}		
+		if (playerdata.fCurrentHP <= 0)
+		{
+			OnDeadCall.Broadcast();
+		}
 	}
+
+	if (OnDamageCaused.IsBound())
+		OnDamageCaused.Broadcast();
+
+	
+
 }
 
-void ANinjaCharacter::HitByBoss()
+void ANinjaCharacter::HitByBoss(float AmountOfDamage)
 {
-	if (PlayerData.fCurruentHP > 0)
+	if (playerdata.fCurrentHP > 0)
 	{
-		PlayerData.fCurruentHP -= 0.06;
+		playerdata.fCurrentHP -= AmountOfDamage;
 
-			if (PlayerData.fCurruentHP <= 0)
-			{
-				OnDeadCall.Broadcast();
-			}
+		if (playerdata.fCurrentHP <= 0)
+		{
+			OnDeadCall.Broadcast();
+		}
 	}
+
+	if (OnDamageCaused.IsBound())
+		OnDamageCaused.Broadcast();
 }
 
 void ANinjaCharacter::DashStart()

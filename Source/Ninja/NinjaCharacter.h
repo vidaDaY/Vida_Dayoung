@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Components/SceneComponent.h"
-#include "BaseWeapon.h"
-#include "S_PlayerData.h"
+#include "Ninja_GameInstance.h"
+#include "PlayerData.h"
 #include "NinjaCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadCall);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDamageCaused);
 
 UENUM(BlueprintType)
 enum class E_PlayerMode : uint8
@@ -41,16 +41,16 @@ class ANinjaCharacter : public ACharacter
 
 
 
-
 public:
 
 
 	ANinjaCharacter();
 
+	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		float BaseTurnRate;
 
-
+	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		float BaseLookUpRate;
 
@@ -60,39 +60,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enum")
 		void SetPlayerMode(E_PlayerMode eMode);
 
-	UFUNCTION(BlueprintCallable, Category = "Hit")
-		void HitByEnemy();
-
-	UFUNCTION(BlueprintCallable, Category = "Hit")
-		void HitByBoss();
-
 	UPROPERTY(BlueprintReadwrite)
 		E_PlayerMode ePlayerMode;
 
 	UPROPERTY(BlueprintReadwrite)
-		FPLAYERDATA PlayerData;
+		FPLAYERDATA playerdata;
 
-	UPROPERTY(BlueprintReadwrite)
-		AActor* DamageEffect;
 
-	UPROPERTY(BlueprintReadwrite)
-		TSubclassOf<AActor> DamageEffectClass;
+	UPROPERTY(BlueprintReadwrite, Category = "UI")
+		class UMainUserWidget* MainWidget;
+
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+		TSubclassOf <class UMainUserWidget> MainUserWidgetClass;
+
+
+
 
 protected:
 
-	void OnResetVR();
-
-	void MoveForward(float Value);
-
-	void MoveRight(float Value);
-
-	void TurnAtRate(float Rate);
-
-	void LookUpAtRate(float Rate);
-
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 	UFUNCTION(BlueprintCallable, Category = "Dash")
 		void DashStart();
@@ -103,17 +89,38 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Death")
 		void OnDead();
 
+	UFUNCTION(BlueprintCallable, Category = "Hit")
+		void HitByEnemy(float AmountOfDamage);
+
+	UFUNCTION(BlueprintCallable, Category = "Hit")
+		void HitByBoss(float AmountOfDamage);
+
+
+
 protected:
-	// APawn interface
+
+
+	void OnResetVR();
+	void MoveForward(float Value);
+	void MoveRight(float Value);
+	void TurnAtRate(float Rate);
+	void LookUpAtRate(float Rate);
+	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
+	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	// End of APawn interface
+
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
-	/** Returns CameraBoom subobject **/
+
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
+
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+
 	FOnDeadCall OnDeadCall;
+	FOnDamageCaused OnDamageCaused;
+
 };
 
