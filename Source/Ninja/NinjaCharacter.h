@@ -9,7 +9,6 @@
 #include "NinjaCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeadCall);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDamageCaused);
 
 UENUM(BlueprintType)
 enum class E_PlayerMode : uint8
@@ -35,7 +34,6 @@ class ANinjaCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		class USpringArmComponent* TPSBoom;
 
-	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		class UChildActorComponent* TPSCamera;
 
@@ -66,14 +64,11 @@ public:
 	UPROPERTY(BlueprintReadwrite)
 		FPLAYERDATA playerdata;
 
-
 	UPROPERTY(BlueprintReadwrite, Category = "UI")
 		class UMainUserWidget* MainWidget;
 
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 		TSubclassOf <class UMainUserWidget> MainUserWidgetClass;
-
 
 
 
@@ -92,13 +87,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Hit")
 		void HitByEnemy(float AmountOfDamage);
 
-	UFUNCTION(BlueprintCallable, Category = "Hit")
-		void HitByBoss(float AmountOfDamage);
-
 
 
 protected:
-
 
 	void OnResetVR();
 	void MoveForward(float Value);
@@ -118,9 +109,6 @@ public:
 
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-
 	FOnDeadCall OnDeadCall;
-	FOnDamageCaused OnDamageCaused;
-
 };
 

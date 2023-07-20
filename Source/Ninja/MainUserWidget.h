@@ -30,6 +30,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Coin")
 		void BindCoin(int nCoin);
 
+
 private:
 	UPROPERTY( meta = ( BindWidget ))
 		class UProgressBar* HealthBar;

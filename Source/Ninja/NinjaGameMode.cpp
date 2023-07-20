@@ -28,4 +28,5 @@ ANinjaGameMode::ANinjaGameMode()
 		PlayerControllerClass = NinjaPlayerControllerClass;
 	}
 
+
 }

@@ -38,11 +38,11 @@ void ABaseWeapon::BeginPlay()
 }
 
 // Called every frame
-void ABaseWeapon::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
+//void ABaseWeapon::Tick(float DeltaTime)
+//{
+//	Super::Tick(DeltaTime);
+//
+//}
 
 void ABaseWeapon::AttackOn(FName FirstSocketName, FName SecondSocketName)
 {

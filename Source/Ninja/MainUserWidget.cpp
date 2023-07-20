@@ -4,8 +4,6 @@
 #include "MainUserWidget.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
-#include "Components/Image.h"
-#include "Engine/Texture2D.h"
 #include "NinjaCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -31,7 +29,6 @@ void UMainUserWidget::NativeConstruct()
 
 	}
 
-
 	NinjaCharacter = Cast<ANinjaCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 
 }
@@ -49,17 +46,15 @@ void UMainUserWidget::NativeTick(const FGeometry& MyGeometry, float DeltaTime)
 
 	else
 	{
+		int8 nCoinCount = NinjaCharacter->playerdata.nCoin;
+		float fMpPercentage = NinjaCharacter->playerdata.fCurrentMP;
 
-		int16 nCoinCount = NinjaCharacter->playerdata.nCoin;
-		float fMPPercentage = NinjaCharacter->playerdata.fCurrentMP;
-
-		BindMpBar(fMPPercentage);
+		BindMpBar(fMpPercentage);
 		BindCoin(nCoinCount);
-
 	}
 
-
 }
+
 
 void UMainUserWidget::BindHpBar(float fHPPercentage)
 {
@@ -67,6 +62,7 @@ void UMainUserWidget::BindHpBar(float fHPPercentage)
 	{
 		HealthBar->SetPercent(fHPPercentage);
 	}
+
 }
 
 void UMainUserWidget::BindMpBar(float fMPPercentage)
@@ -75,11 +71,13 @@ void UMainUserWidget::BindMpBar(float fMPPercentage)
 	{
 		ManaBar->SetPercent(fMPPercentage);
 	}
+
 }
 
 void UMainUserWidget::BindCoin(int nCoin)
 {
 	CoinCount->SetText(FText::AsNumber(nCoin));
 }
+
 
 

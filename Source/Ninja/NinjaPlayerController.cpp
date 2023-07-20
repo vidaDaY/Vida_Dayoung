@@ -3,10 +3,12 @@
 
 #include "NinjaPlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "MainUserWidget.h"
 
 
 ANinjaPlayerController::ANinjaPlayerController()
 {
+ 
 
 }
 
@@ -26,5 +28,9 @@ void ANinjaPlayerController::BeginPlay()
 	{
 		PlayerController->SetInputMode(FInputModeGameOnly());
 	}
+
+
+
+
 }
 
